@@ -97,13 +97,13 @@ Can I add gravity to an object on screen e.g. Circle?
 				})
 					.centerReg(world)
 					.pos(0, 0, false, BOTTOM)
-					.addPhysics()
+					.addPhysics({ categoryBits: 2 })
 
 				// =========== APOLLO COMMAND MODULE
 				const apollo = new Container(235, 84)
 					.centerReg(world)
 					.pos(null, 100)
-					.addPhysics({ dynamic: false })
+					.addPhysics({ dynamic: false, categoryBits: 2 })
 				const mainSpaceCraft = new asset('apollo.png').centerReg(apollo)
 				const apolloDockingPoint = new Circle(7, '#F8D59C')
 					.centerReg(apollo)
@@ -119,7 +119,8 @@ Can I add gravity to an object on screen e.g. Circle?
 						friction: 0.6,
 						linear: 0.7,
 						restitution: 1,
-						density: 1
+						density: 1,
+						maskBits: 2
 					})
 				const spaceCraft = new asset('lander.png').centerReg(lander)
 				const landerDockingPoint = new Rectangle(38, 4, '#F8D59C')
@@ -147,37 +148,38 @@ Can I add gravity to an object on screen e.g. Circle?
 					.pos(null, -60, false, TOP)
 
 				// ====================== ROVER PARTS
+
 				const roverBody = asset('rover-body.png')
 					.centerReg(world)
 					.mov(-25, -46)
-					.alp(0.1)
+					.alp(1)
 					.addPhysics({
 						restitution: 1,
 						friction: 0.5,
-						density: 0.2,
-						dynamic: false
+						density: 0.2
+						// dynamic: false
 					})
 
 				const frontWheel = asset('rover-wheel-front.png')
 					.centerReg(world)
-					.alp(0.1)
+					.alp(1)
 					.addPhysics({
 						shape: 'circle',
 						restitution: 1,
 						friction: 8,
-						density: 1.5,
-						dynamic: false
+						density: 1.5
+						// dynamic: false
 					})
 				const backWheel = asset('rover-wheel-back.png')
 					.centerReg(world)
 					.mov(-60, null)
-					.alp(0.1)
+					.alp(1)
 					.addPhysics({
 						shape: 'circle',
 						restitution: 1,
 						friction: 8,
-						density: 1.5,
-						dynamic: false
+						density: 1.5
+						// dynamic: false
 					})
 
 				// ASSEMBLE ROVER
@@ -229,8 +231,6 @@ Can I add gravity to an object on screen e.g. Circle?
 					}
 				})
 				// TICKER
-
-				zog(moon.type)
 				Ticker.add(() => {
 					// hit test between main spacecraft and lander
 					if (apolloDockingPoint.hitTestRect(landerDockingPoint)) {
@@ -279,6 +279,7 @@ Can I add gravity to an object on screen e.g. Circle?
 
 				// =============== CONTROLS
 				const pad = new GamePad()
+				let isLanderControls = true
 				pad.on('data', function(e) {
 					// horizontal is 0 and vertical is 1 on left stick
 					// horizontal is 2 and vertical is 3 on right stick
@@ -296,24 +297,28 @@ Can I add gravity to an object on screen e.g. Circle?
 					// PRESS Y FOR IMPULSE FORCE
 					if (e.buttons[3] == true) lander.impulse(0, -40)
 
-					// PRESS X TO DEPLOY ROVER ON THE MOON - only if lander is on the moon surface
-					if (e.buttons[2] == true) {
-						frontWheel.alpha = 1
-						backWheel.alpha = 1
-						roverBody.alpha = 1
-
-						frontWheel.dynamic = true
-						backWheel.dynamic = true
-						roverBody.dynamic = true
+					if (isLanded) {
+						// PRESS X TO DEPLOY ROVER ON THE MOON - only if lander is on the moon surface
+						if (e.buttons[2] == true) {
+							isLanderControls = !isLanderControls
+							if (isLanderControls) {
+								followTo(lander)
+							} else {
+								followTo(frontWheel)
+							}
+						}
+					} else {
 					}
 
-					// LANDER CONTROL
-					lander.force(e.axes[0] * 40, e.axes[1] * 90, null, null)
-					lander.torque(e.axes[2] * 40)
-
-					// ====== ROVER CONTROLS
-					// frontWheel.torque(e.axes[2] * 10)
-					// backWheel.torque(e.axes[2] * 10)
+					if (isLanderControls) {
+						// LANDER CONTROL
+						lander.force(e.axes[0] * 40, e.axes[1] * 90, null, null)
+						lander.torque(e.axes[2] * 40)
+					} else {
+						// ====== ROVER CONTROLS
+						frontWheel.torque(e.axes[2] * 10)
+						backWheel.torque(e.axes[2] * 10)
+					}
 
 					let yOffset = (
 						e.axes[0].toFixed(3) - e.axes[1].toFixed(3)
