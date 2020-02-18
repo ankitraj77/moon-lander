@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<!-- 
+Can I add gravity to an object on screen e.g. Circle?
+
+ -->
+
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Moon Lander</title>
+		<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
+		<!-- Welcome to ZIM at https://zimjs.com - Code Creativity!                              -->
+		<!-- ZIM runs on the HTML Canvas powered by JavaScript and CreateJS https://createjs.com -->
+		<!-- Founded by Inventor Dan Zen - http://danzen.com - Canadian New Media Award Winner   -->
+		<!-- ZIM is free to use. You can donate to help improve ZIM at https://zimjs.com/donate  -->
+
+		<script src="https://zimjs.org/cdn/1.2.4/createjs.js"></script>
+		<script src="https://zimjs.org/cdn/10.8.0/zim.js"></script>
+		<!-- use zimjs.com/distill for minified individual functions! -->
+
+		<!-- import Box2D and ZIM Physics helper -->
+		<script src="https://zimjs.org/cdn/Box2dWeb-2.1.a.3.min.js"></script>
+		<script src="https://zimjs.org/cdn/physics_2.0.js"></script>
+
+		<script>
+			// SCALING OPTIONS
+			// scaling can have values as follows with full being the default
+			// "fit"	sets canvas and stage to dimensions and scales to fit inside window size
+			// "outside"	sets canvas and stage to dimensions and scales to fit outside window size
+			// "full"	sets stage to window size with no scaling
+			// "tagID"	add canvas to HTML tag of ID - set to dimensions if provided - no scaling
+
+			const scaling = 'fit' // this will resize to fit inside the screen dimensions
+			const width = 1000
+			const height = 1000
+			const color = '#25272B' // ZIM colors like green, blue, pink, faint, clear, etc.
+			const outerColor = '#25272B' // any HTML colors like "violet", "#333", etc. are fine to use
+
+			const path = 'images/'
+			const assets = [
+				'lander.png',
+				'apollo.png',
+				'rover-body.png',
+				'rover-wheel-front.png',
+				'rover-wheel-back.png'
+			]
+
+			const frame = new Frame(
+				scaling,
+				width,
+				height,
+				color,
+				outerColor,
+				assets,
+				path
+			)
+			frame.on('ready', () => {
+				const stage = frame.stage
+				let stageW = frame.width
+				let stageH = frame.height
+
+				// see https://zimjs.com/learn.html for video and code tutorials
+				// see https://zimjs.com/docs.html for documentation
+				// see https://zimjs.com/bits.html for 64 Interactive Media techniques
+
+				// put your code here (you can delete this sample code)
+				let isDocked = true
+				let isLanded = false
+				let velocityY = 0
+				let velocityX = 0
+				// WORLD
+				const tile = new Tile({
+					obj: new Circle({ min: 3, max: 6 }, ['#C4CCD6']),
+					cols: 10,
+					rows: 10,
+					spacingH: 300,
+					spacingV: 300
+				})
+
+				const world = new Container(tile.width, tile.height).center()
+				tile.addTo(world)
+				// WORLD
+
+				const physics = new Physics({
+					gravity: 3,
+					scroll: true,
+					borders: new Boundary(0, 0, tile.width, tile.height)
+				})
+				// physics.debug()
+
+				// ======================= Moon
+				const moon = new Rectangle({
+					width: tile.width,
+					height: 50,
+					color: '#888C93'
+				})
+					.centerReg(world)
+					.pos(0, 0, false, BOTTOM)
+					.addPhysics()
+
+				// =========== APOLLO COMMAND MODULE
+				const apollo = new Container(235, 84)
+					.centerReg(world)
+					.pos(null, 100)
+					.addPhysics({ dynamic: false })
+				const mainSpaceCraft = new asset('apollo.png').centerReg(apollo)
+				const apolloDockingPoint = new Circle(7, '#F8D59C')
+					.centerReg(apollo)
+					.pos(-5, null, true)
+
+				// ==================== LANDER
+				const lander = new Container(160, 120)
+					.centerReg(world)
+					.pos(tile.width / 2 + 98, 80)
+					.rot(-90)
+					.addPhysics({
+						dynamic: false,
+						friction: 0.6,
+						linear: 0.7,
+						restitution: 1,
+						density: 1
+					})
+				const spaceCraft = new asset('lander.png').centerReg(lander)
+				const landerDockingPoint = new Rectangle(38, 4, '#F8D59C')
+					.centerReg(lander)
+					.pos(null, 2)
+
+				// physics.join(lander, apollo)
+
+				// =============== PARTICLES
+				var particles = new Emitter({
+					obj: [
+						new Circle(6, null, 'white')
+						// new Rectangle(9, 9, null, 'white'),
+						// new Triangle(12, 12, 12, null, 'white')
+					],
+					gravity: 2,
+					force: 2,
+					interval: 30,
+					decayTime: 500,
+					life: 500,
+					angle: 90,
+					startPaused: true
+				})
+					.centerReg(lander)
+					.pos(null, -60, false, TOP)
+
+				// ====================== ROVER PARTS
+				const roverBody = asset('rover-body.png')
+					.centerReg(world)
+					.mov(-25, -46)
+					.alp(0.1)
+					.addPhysics({
+						restitution: 1,
+						friction: 0.5,
+						density: 0.2,
+						dynamic: false
+					})
+
+				const frontWheel = asset('rover-wheel-front.png')
+					.centerReg(world)
+					.alp(0.1)
+					.addPhysics({
+						shape: 'circle',
+						restitution: 1,
+						friction: 8,
+						density: 1.5,
+						dynamic: false
+					})
+				const backWheel = asset('rover-wheel-back.png')
+					.centerReg(world)
+					.mov(-60, null)
+					.alp(0.1)
+					.addPhysics({
+						shape: 'circle',
+						restitution: 1,
+						friction: 8,
+						density: 1.5,
+						dynamic: false
+					})
+
+				// ASSEMBLE ROVER
+				physics.join(
+					frontWheel,
+					roverBody,
+					null,
+					null,
+					null,
+					null,
+					'revolute'
+				)
+				physics.join(
+					backWheel,
+					roverBody,
+					null,
+					null,
+					null,
+					null,
+					'revolute'
+				)
+				// ATTACH ROVER TO LANDER AND RELEASE ONCE LANDER IS ON THE MOON
+				// physics.join(
+				// 	frontWheel,
+				// 	lander,
+				// 	null,
+				// 	null,
+				// 	null,
+				// 	null,
+				// 	'revolute'
+				// )
+
+				// ============== HIT TEST
+				let hitCheck = false
+				lander.contact(obj => {
+					hitCheck = true
+
+					console.log(obj)
+					if (obj.type == 'Rectangle' && velocityY < 15) {
+						moon.color = '#4CC67B'
+					} else if (
+						obj.type == 'Rectangle' &&
+						velocityY > 15 &&
+						velocityY < 50
+					) {
+						moon.color = '#F7D33B'
+					} else if (obj.type == 'Rectangle' && velocityY > 50) {
+						moon.color = '#C94646'
+					}
+				})
+				// TICKER
+
+				zog(moon.type)
+				Ticker.add(() => {
+					// hit test between main spacecraft and lander
+					if (apolloDockingPoint.hitTestRect(landerDockingPoint)) {
+						// zogg('DOCKING SUCCESSFUL')
+						isDocked = true
+						lander.dynamic = false
+						moon.color = '#888C93' // once docked change moon color to default
+					}
+
+					// Hit test if lander is on the moon
+					if (lander.hitTestBounds(moon, 10)) {
+						isLanded = true
+					} else {
+						isLanded = false
+					}
+					// zogg('Is lander on the moon? ' + isLanded)
+
+					let velX = velocityX
+					if (velX < 0) velX *= -1 // convert negavite values to positive
+
+					// TO CHECK IF APOLLO AND LANDER ARE WITHIN 400 RANGE
+					let xDistance = 0 // distance between apollo and lander's x positions
+					if (lander.x > apollo.x) xDistance = lander.x - apollo.x
+					if (lander.x < apollo.x) xDistance = apollo.x - lander.x
+					let yDistance = 0 // distance between apollo and lander's y positions
+					if (lander.y > apollo.y) yDistance = lander.y - apollo.y
+					if (lander.y < apollo.y) yDistance = apollo.y - lander.y
+					if (xDistance < 400 && yDistance < 400) {
+						// zogg('Within range')
+						if (velX > 5) {
+							apolloDockingPoint.color = '#C94646' // RED
+							landerDockingPoint.color = '#C94646'
+						} else {
+							apolloDockingPoint.color = '#4CC67B' // GREEN
+							landerDockingPoint.color = '#4CC67B'
+						}
+					} else {
+						apolloDockingPoint.color = '#F8D59C' // DEFAULT YELLOW
+						landerDockingPoint.color = '#F8D59C'
+					}
+					// =========
+					calCulateVelocity()
+					// zogb(velX)
+					// zogg('Is Docked? ' + isDocked)
+				})
+
+				// =============== CONTROLS
+				const pad = new GamePad()
+				pad.on('data', function(e) {
+					// horizontal is 0 and vertical is 1 on left stick
+					// horizontal is 2 and vertical is 3 on right stick
+					// console.log(e)
+
+					// PRESS A TO RELEASE THE LANDER
+					// zogb(e.buttons)
+					if (e.buttons[0] == true) {
+						isDocked = false
+						lander.mov(10, null)
+						lander.dynamic = true
+						lander.torque(60)
+					}
+
+					// PRESS Y FOR IMPULSE FORCE
+					if (e.buttons[3] == true) lander.impulse(0, -40)
+
+					// PRESS X TO DEPLOY ROVER ON THE MOON - only if lander is on the moon surface
+					if (e.buttons[2] == true) {
+						frontWheel.alpha = 1
+						backWheel.alpha = 1
+						roverBody.alpha = 1
+
+						frontWheel.dynamic = true
+						backWheel.dynamic = true
+						roverBody.dynamic = true
+					}
+
+					// LANDER CONTROL
+					lander.force(e.axes[0] * 40, e.axes[1] * 90, null, null)
+					lander.torque(e.axes[2] * 40)
+
+					// ====== ROVER CONTROLS
+					// frontWheel.torque(e.axes[2] * 10)
+					// backWheel.torque(e.axes[2] * 10)
+
+					let yOffset = (
+						e.axes[0].toFixed(3) - e.axes[1].toFixed(3)
+					).toFixed(3)
+					// particles.life = e.axes[0] * 1000
+					if (yOffset > 0.1) {
+						particles.pauseEmitter(false)
+					} else {
+						particles.pauseEmitter(true)
+					}
+				})
+
+				// pad.on('buttondown', function(e) {
+				// 	if (e.button == 'RT') zogr('Fire')
+				// 	if (e.button == 'A') zogg(1234)
+				// 	particles.pauseEmitter(false)
+				// })
+				// pad.on('buttonup', function() {
+				// 	particles.pauseEmitter(true)
+				// })
+
+				// ============================ FUNCTIONS
+				let y1 = 0 // starting Y position
+				let x1 = 0 // starting X position
+				function calCulateVelocity() {
+					// v = distance / time
+					let y2 = lander.y // current Y position
+					let x2 = lander.x // current X position
+					let distanceY = y2 - y1
+					let distanceX = x2 - x1
+					let vY = distanceY / 60
+					let vX = distanceX / 60
+					y1 = y2 // assign current position to old one
+					x1 = x2 // assign current position to old one
+					velocityY = (vY * 1000).toFixed(3)
+					velocityX = (vX * 1000).toFixed(3)
+					return
+				}
+
+				// FOLLOW LANDER
+				followTo(lander)
+				function followTo(obj) {
+					frame.follow(obj)
+				}
+
+				stage.update() // this is needed to show any changes
+			}) // end of ready
+		</script>
+
+		<meta name="viewport" content="width=device-width, user-scalable=no" />
+	</head>
+
+	<body>
+		<!-- canvas with id="myCanvas" is made by zim Frame -->
+	</body>
+</html>

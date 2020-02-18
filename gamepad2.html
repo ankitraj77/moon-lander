@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Moon Lander</title>
+		<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
+		<!-- Welcome to ZIM at https://zimjs.com - Code Creativity!                              -->
+		<!-- ZIM runs on the HTML Canvas powered by JavaScript and CreateJS https://createjs.com -->
+		<!-- Founded by Inventor Dan Zen - http://danzen.com - Canadian New Media Award Winner   -->
+		<!-- ZIM is free to use. You can donate to help improve ZIM at https://zimjs.com/donate  -->
+
+		<script src="https://zimjs.org/cdn/1.2.4/createjs.js"></script>
+		<script src="https://zimjs.org/cdn/10.8.0/zim.js"></script>
+		<!-- use zimjs.com/distill for minified individual functions! -->
+
+		<!-- import Box2D and ZIM Physics helper -->
+		<script src="https://zimjs.org/cdn/Box2dWeb-2.1.a.3.min.js"></script>
+		<script src="https://zimjs.org/cdn/physics_2.0.js"></script>
+
+		<script>
+			// SCALING OPTIONS
+			// scaling can have values as follows with full being the default
+			// "fit"	sets canvas and stage to dimensions and scales to fit inside window size
+			// "outside"	sets canvas and stage to dimensions and scales to fit outside window size
+			// "full"	sets stage to window size with no scaling
+			// "tagID"	add canvas to HTML tag of ID - set to dimensions if provided - no scaling
+
+			const scaling = 'fit' // this will resize to fit inside the screen dimensions
+			const width = 1024
+			const height = 768
+			const color = light // ZIM colors like green, blue, pink, faint, clear, etc.
+			const outerColor = dark // any HTML colors like "violet", "#333", etc. are fine to use
+
+			const path = 'images/'
+			const assets = ['lander.png']
+
+			const frame = new Frame(
+				scaling,
+				width,
+				height,
+				color,
+				outerColor,
+				assets,
+				path
+			)
+			frame.on('ready', () => {
+				// ES6 Arrow Function - like function(){}
+				zog('ready from ZIM Frame') // logs in console (F12 - choose console)
+
+				const stage = frame.stage
+				let stageW = frame.width
+				let stageH = frame.height
+
+				// see https://zimjs.com/learn.html for video and code tutorials
+				// see https://zimjs.com/docs.html for documentation
+				// see https://zimjs.com/bits.html for 64 Interactive Media techniques
+
+				// put your code here (you can delete this sample code)
+
+				const physics = new Physics(5)
+
+				const lander = new Blob({
+					color: '#cc0000',
+					borderColor: dark,
+					borderWidth: 0.5,
+					interactive: false,
+					points: [
+						[0, -40.7, 0, 0, -57.3, -76.6, 41.8, -80.3, 'mirror'],
+						[100, 0, 0, 0, 23.7, -45.4, -23.7, 45.4, 'mirror'],
+						[0, 100, 0, 0, 0, 0, 0, 0, 'mirror'],
+						[-100, 0, 0, 0, 21.9, 48.2, -21.9, -48.2, 'mirror']
+					]
+				})
+					.center()
+					.addPhysics()
+
+				const pad = new GamePad()
+				pad.on('data', function(e) {
+					// horizontal is 0 and vertical is 1 on left stick
+					// horizontal is 2 and vertical is 3 on right stick
+					lander.force(e.axes[0] * 700, e.axes[1] * 700)
+				})
+				pad.on('buttondown', function(e) {
+					if (e.button == 'RT') zogr('Fire')
+					if (e.button == 'A') zogg(1234)
+					emitter.pauseEmitter(false)
+				})
+				pad.on('buttonup', function() {
+					emitter.pauseEmitter(true)
+				})
+
+				const emitter = new Emitter({
+					startPaused: true,
+					obj: new Circle(50, '#cc0000'),
+					gravity: 0,
+					force: 10,
+					interval: 30,
+					decayTime: 500,
+					life: 500,
+					angle: 90
+				}).center(lander, 0)
+
+				stage.update() // this is needed to show any changes
+			}) // end of ready
+		</script>
+
+		<meta name="viewport" content="width=device-width, user-scalable=no" />
+	</head>
+
+	<body>
+		<!-- canvas with id="myCanvas" is made by zim Frame -->
+	</body>
+</html>
