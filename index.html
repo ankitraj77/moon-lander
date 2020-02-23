@@ -15,6 +15,11 @@ Can I add gravity to an object on screen e.g. Circle?
 		<!-- Founded by Inventor Dan Zen - http://danzen.com - Canadian New Media Award Winner   -->
 		<!-- ZIM is free to use. You can donate to help improve ZIM at https://zimjs.com/donate  -->
 
+		<link
+			href="https://fonts.googleapis.com/css?family=Courier+Prime&display=swap"
+			rel="stylesheet"
+		/>
+
 		<script src="https://zimjs.org/cdn/1.2.4/createjs.js"></script>
 		<script src="https://zimjs.org/cdn/10.8.0/zim.js"></script>
 		<!-- use zimjs.com/distill for minified individual functions! -->
@@ -31,7 +36,7 @@ Can I add gravity to an object on screen e.g. Circle?
 			// "full"	sets stage to window size with no scaling
 			// "tagID"	add canvas to HTML tag of ID - set to dimensions if provided - no scaling
 
-			const scaling = 'fit' // this will resize to fit inside the screen dimensions
+			const scaling = 'full' // this will resize to fit inside the screen dimensions
 			const width = 1000
 			const height = 1000
 			const color = '#25272B' // ZIM colors like green, blue, pink, faint, clear, etc.
@@ -43,7 +48,8 @@ Can I add gravity to an object on screen e.g. Circle?
 				'apollo.png',
 				'rover-body.png',
 				'rover-wheel-front.png',
-				'rover-wheel-back.png'
+				'rover-wheel-back.png',
+				'hud-lander.png'
 			]
 
 			const frame = new Frame(
@@ -65,44 +71,185 @@ Can I add gravity to an object on screen e.g. Circle?
 				// see https://zimjs.com/bits.html for 64 Interactive Media techniques
 
 				// put your code here (you can delete this sample code)
+				const MAXFUEL = 1000
+				const ENGINE_TORQUE = 10
+				const GRAVITY = 1.62
+				const THRUST = GRAVITY * 0.4
+
+				let isGameOver = false
 				let isDocked = true
 				let isLanded = false
-				let velocityY = 0
+				let velocityY = '0000' // You're seeing this crazy code because that's how I was able to provide 4 digit place on the canvas :D JS can take care of the type conversion
 				let velocityX = 0
+				let distance = '0000'
+				let score = '0000'
+
 				// WORLD
 				const tile = new Tile({
 					obj: new Circle({ min: 3, max: 6 }, ['#C4CCD6']),
-					cols: 10,
+					cols: 30,
 					rows: 10,
-					spacingH: 300,
-					spacingV: 300
+					spacingH: 500,
+					spacingV: 500
 				})
 
 				const world = new Container(tile.width, tile.height).center()
 				tile.addTo(world)
-				// WORLD
 
+				// PHYSICS GLOBAL RULES
 				const physics = new Physics({
-					gravity: 3,
+					gravity: GRAVITY,
 					scroll: true,
 					borders: new Boundary(0, 0, tile.width, tile.height)
 				})
 				// physics.debug()
 
+				// ============================ SCORE
+				let fuel = MAXFUEL
+				STYLE = {
+					type: {
+						Label: {
+							size: 18,
+							font: 'Courier Prime',
+							fontOptions: 'bold',
+							color: 'rgba(255,255,255,0.8)'
+						}
+					}
+				}
+				let scoreBoard = new Container(stageW, 75).center().pos(0, 40)
+				// .outline()
+				// FUEL
+				let fuelLabel = new Label({
+					text: fuel
+				})
+					.centerReg(scoreBoard)
+					.pos(50, 0, RIGHT)
+				new Label({
+					text: 'Fuel',
+					fontOptions: 'normal',
+					color: 'rgba(255,255,255,0.4)'
+				})
+					.centerReg(scoreBoard)
+					.pos(130, 0, RIGHT)
+
+				// VELOCITY
+				let velocityLabel = new Label({
+					text: velocityY
+				})
+					.centerReg(scoreBoard)
+					.pos(50, 25, RIGHT)
+				new Label({
+					text: 'Velocity:y',
+					fontOptions: 'normal',
+					color: 'rgba(255,255,255,0.4)'
+				})
+					.centerReg(scoreBoard)
+					.pos(130, 25, RIGHT)
+
+				// DISTANCE
+				let distanceLabel = new Label({
+					text: distance
+				})
+					.centerReg(scoreBoard)
+					.pos(50, 50, RIGHT)
+				new Label({
+					text: 'Distance',
+					fontOptions: 'normal',
+					color: 'rgba(505,255,255,0.4)'
+				})
+					.centerReg(scoreBoard)
+					.pos(130, 50, RIGHT)
+
+				// SCORECARD
+				let scoreLabel = new Label({
+					text: score,
+					color: '#212121',
+					backgroundColor: '#F8D59C'
+				})
+					.centerReg(scoreBoard)
+					.pos(50, 75, RIGHT)
+				new Label({
+					text: 'SCORE',
+					fontOptions: 'normal',
+					color: 'rgba(505,255,255,0.4)'
+				})
+					.centerReg(scoreBoard)
+					.pos(130, 85, RIGHT)
+
+				// SCORE ICON
+				new asset('hud-lander.png')
+					.centerReg(scoreBoard)
+					.sca(0.6)
+					.pos(290, 0, RIGHT)
+				new Rectangle(3, scoreBoard.height, '#888C93')
+					.centerReg(scoreBoard)
+					.pos(260, 0, RIGHT)
+
 				// ======================= Moon
 				const moon = new Rectangle({
 					width: tile.width,
-					height: 50,
+					height: stageH / 2,
 					color: '#888C93'
 				})
 					.centerReg(world)
 					.pos(0, 0, false, BOTTOM)
-					.addPhysics({ categoryBits: 2 })
+					.addPhysics({ categoryBits: 2, density: 1000 })
 
+				// GENERATE RANDOM TRIANGLES - OBSTACLES
+				for (let i = 0; i < 4; i++) {
+					new Triangle({
+						a: rand(30, 100),
+						b: rand(5, 35),
+						c: -1,
+						color: '#888C93'
+					})
+						.centerReg(world)
+						.pos(rand(100, tile.width), stageH / 2, false, BOTTOM)
+						.addPhysics({ categoryBits: 2, density: 100 })
+
+					new Circle({
+						radius: rand(1, 5),
+						color: '#888C93'
+					})
+						.centerReg(world)
+						.pos(rand(100, tile.width), stageH / 2, false, BOTTOM)
+						.addPhysics({ categoryBits: 2, density: 0.5 })
+				}
+				// physics.join(obstacle, moon, null, null, null, null, 'weld')
+				// GENERATE RANDOM TINY STONES - DUST
+				for (let i = 0; i < 50; i++) {
+					new Circle({
+						radius: rand(0.2, 5),
+						color: '#888C93'
+					})
+						.centerReg(world)
+						.pos(rand(100, tile.width), stageH / 2, false, BOTTOM)
+						.addPhysics({
+							categoryBits: 2,
+							density: 0.2,
+							friction: 0.2,
+							restitution: 1.2
+						})
+				}
+
+				// const moon = new Squiggle({
+				// 	points: 12,
+				// 	// points:
+				// 	// 	'M.5,228.5l30-25s32,9,45,12,96-31,96-31l134,44,50-64,94,51s106,5,119,0,231,13,231,13l105-32h292l154,95s68-142,78-142,412,93,412,93l115,27,83-95,310,83,139-81,313,10,136,44,135-10h84',
+				// 	thickness: 10,
+				// 	controlType: 'none',
+				// 	lockControlType: true,
+				// 	lockControls: true
+				// })
+				// 	.centerReg(world)
+				// 	.pos(0, -100, false, BOTTOM)
+				// 	.outline()
+				// 	.addPhysics({ categoryBits: 2 })
+				// new asset('moon-surface.svg').centerReg(moon)
 				// =========== APOLLO COMMAND MODULE
 				const apollo = new Container(235, 84)
 					.centerReg(world)
-					.pos(null, 100)
+					.pos(null, tile.height / 3)
 					.addPhysics({ dynamic: false, categoryBits: 2 })
 				const mainSpaceCraft = new asset('apollo.png').centerReg(apollo)
 				const apolloDockingPoint = new Circle(7, '#F8D59C')
@@ -110,32 +257,29 @@ Can I add gravity to an object on screen e.g. Circle?
 					.pos(-5, null, true)
 
 				// ==================== LANDER
-				const lander = new Container(160, 120)
+				const lander = new Container(166, 109)
 					.centerReg(world)
-					.pos(tile.width / 2 + 98, 80)
+					.pos(tile.width / 2 + 95, tile.height / 3 - 15)
 					.rot(-90)
 					.addPhysics({
 						dynamic: false,
 						friction: 0.6,
 						linear: 0.7,
 						restitution: 1,
-						density: 1,
+						density: 0.5,
 						maskBits: 2
 					})
 				const spaceCraft = new asset('lander.png').centerReg(lander)
 				const landerDockingPoint = new Rectangle(38, 4, '#F8D59C')
 					.centerReg(lander)
-					.pos(null, 2)
+					.pos(null, 0)
 
 				// physics.join(lander, apollo)
 
 				// =============== PARTICLES
+				// MAIN ENGINE PARTICLES
 				var particles = new Emitter({
-					obj: [
-						new Circle(6, null, 'white')
-						// new Rectangle(9, 9, null, 'white'),
-						// new Triangle(12, 12, 12, null, 'white')
-					],
+					obj: [new Circle(12, null, 'white')],
 					gravity: 2,
 					force: 2,
 					interval: 30,
@@ -146,7 +290,32 @@ Can I add gravity to an object on screen e.g. Circle?
 				})
 					.centerReg(lander)
 					.pos(null, -60, false, TOP)
-
+				// SECONDARY ENGINES PARTICLES
+				var particlesRight = new Emitter({
+					obj: [new Circle(4, null, 'white')],
+					gravity: 2,
+					force: 2,
+					interval: 30,
+					decayTime: 500,
+					life: 500,
+					angle: -20,
+					startPaused: true
+				})
+					.centerReg(lander)
+					.pos(-40, -50, LEFT, BOTTOM)
+				var particlesLeft = new Emitter({
+					obj: [new Circle(4, null, 'white')],
+					gravity: 2,
+					force: 2,
+					interval: 30,
+					decayTime: 500,
+					life: 500,
+					angle: -180,
+					startPaused: true
+				})
+					.centerReg(lander)
+					.pos(-40, -50, RIGHT, BOTTOM)
+				// lander.outline()
 				// ====================== ROVER PARTS
 
 				const roverBody = asset('rover-body.png')
@@ -156,7 +325,7 @@ Can I add gravity to an object on screen e.g. Circle?
 					.addPhysics({
 						restitution: 1,
 						friction: 0.5,
-						density: 0.2
+						density: 0.3
 						// dynamic: false
 					})
 
@@ -165,9 +334,10 @@ Can I add gravity to an object on screen e.g. Circle?
 					.alp(1)
 					.addPhysics({
 						shape: 'circle',
-						restitution: 1,
+						restitution: 0.5,
 						friction: 8,
-						density: 1.5
+						density: 1.5,
+						angular: 0.8
 						// dynamic: false
 					})
 				const backWheel = asset('rover-wheel-back.png')
@@ -176,9 +346,10 @@ Can I add gravity to an object on screen e.g. Circle?
 					.alp(1)
 					.addPhysics({
 						shape: 'circle',
-						restitution: 1,
+						restitution: 0.5,
 						friction: 8,
-						density: 1.5
+						density: 1.5,
+						angular: 0.8
 						// dynamic: false
 					})
 
@@ -232,6 +403,11 @@ Can I add gravity to an object on screen e.g. Circle?
 				})
 				// TICKER
 				Ticker.add(() => {
+					// UPDATE SCOREBOARD
+					velocityLabel.text = (velocityY * 10).toFixed(0)
+					distance = (moon.y - lander.y).toFixed(0)
+					distanceLabel.text = distance
+
 					// hit test between main spacecraft and lander
 					if (apolloDockingPoint.hitTestRect(landerDockingPoint)) {
 						// zogg('DOCKING SUCCESSFUL')
@@ -272,7 +448,7 @@ Can I add gravity to an object on screen e.g. Circle?
 						landerDockingPoint.color = '#F8D59C'
 					}
 					// =========
-					calCulateVelocity()
+
 					// zogb(velX)
 					// zogg('Is Docked? ' + isDocked)
 				})
@@ -280,11 +456,11 @@ Can I add gravity to an object on screen e.g. Circle?
 				// =============== CONTROLS
 				const pad = new GamePad()
 				let isLanderControls = true
+				let fx = 0
+				let fy = 0
 				pad.on('data', function(e) {
 					// horizontal is 0 and vertical is 1 on left stick
 					// horizontal is 2 and vertical is 3 on right stick
-					// console.log(e)
-
 					// PRESS A TO RELEASE THE LANDER
 					// zogb(e.buttons)
 					if (e.buttons[0] == true) {
@@ -295,7 +471,8 @@ Can I add gravity to an object on screen e.g. Circle?
 					}
 
 					// PRESS Y FOR IMPULSE FORCE
-					if (e.buttons[3] == true) lander.impulse(0, -40)
+					// if (e.buttons[3] == true) lander.impulse(0, -40)
+					if (e.buttons[3] == true) zogr(lander)
 
 					if (isLanded) {
 						// PRESS X TO DEPLOY ROVER ON THE MOON - only if lander is on the moon surface
@@ -311,39 +488,60 @@ Can I add gravity to an object on screen e.g. Circle?
 					}
 
 					if (isLanderControls) {
-						// LANDER CONTROL
-						lander.force(e.axes[0] * 40, e.axes[1] * 90, null, null)
-						lander.torque(e.axes[2] * 40)
+						// Calculate Velocity
+						calculateVelocity()
+						if (fuel > 0) {
+							// LANDER CONTROL
+							if (e.axes[1] < 0) {
+								fy = e.axes[1] * 100 * THRUST
+							} else {
+								fy = e.axes[1] * 10
+							}
+							lander.force(e.axes[0] * 10, fy, null, null)
+							// lander.force(null, 5, 200, 200)
+							lander.torque(e.axes[2] * 40)
+
+							// PARTICLE ANIMATION TO SIMULATE ENGINE ON AND OFF STATES
+							// MAIN ENGINE
+							let yOffset = (e.axes[0] - e.axes[1]).toFixed(3)
+							if (yOffset > 0.1) {
+								particles.pauseEmitter(false)
+								//
+								fuel > 0 ? (fuel -= 0.5) : (fuel = 0)
+								fuelLabel.text = fuel
+							} else {
+								particles.pauseEmitter(true)
+							}
+							// AUXILIARY ENGINE
+							if (e.axes[2] < 0.001) {
+								particlesRight.pauseEmitter(false)
+							} else {
+								particlesRight.pauseEmitter(true)
+							}
+							if (e.axes[2] > 0.1) {
+								particlesLeft.pauseEmitter(false)
+							} else {
+								particlesLeft.pauseEmitter(true)
+							}
+						} else {
+							// fuel exhausted turn off the engine animations
+							particles.pauseEmitter(true)
+							particlesRight.pauseEmitter(true)
+							particlesLeft.pauseEmitter(true)
+						}
 					} else {
 						// ====== ROVER CONTROLS
-						frontWheel.torque(e.axes[2] * 10)
-						backWheel.torque(e.axes[2] * 10)
+						frontWheel.torque(e.axes[2] * ENGINE_TORQUE)
+						backWheel.torque(e.axes[2] * ENGINE_TORQUE)
 					}
 
-					let yOffset = (
-						e.axes[0].toFixed(3) - e.axes[1].toFixed(3)
-					).toFixed(3)
-					// particles.life = e.axes[0] * 1000
-					if (yOffset > 0.1) {
-						particles.pauseEmitter(false)
-					} else {
-						particles.pauseEmitter(true)
-					}
+					// zogg(e.axes[1])
 				})
-
-				// pad.on('buttondown', function(e) {
-				// 	if (e.button == 'RT') zogr('Fire')
-				// 	if (e.button == 'A') zogg(1234)
-				// 	particles.pauseEmitter(false)
-				// })
-				// pad.on('buttonup', function() {
-				// 	particles.pauseEmitter(true)
-				// })
 
 				// ============================ FUNCTIONS
 				let y1 = 0 // starting Y position
 				let x1 = 0 // starting X position
-				function calCulateVelocity() {
+				function calculateVelocity() {
 					// v = distance / time
 					let y2 = lander.y // current Y position
 					let x2 = lander.x // current X position
