@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 
-<!-- 
-Can I add gravity to an object on screen e.g. Circle?
+<!--
+Here are some questions and their answers that I stumbled upon while developing this game. I hope this may help others if they face similar issues.
+
+Q: Can I add gravity to an object on screen e.g. Circle?
+A: You can but you need to consider vectors (atleast x and y) in your calculations while applying force.
 
  -->
 
@@ -10,7 +13,7 @@ Can I add gravity to an object on screen e.g. Circle?
 		<meta charset="utf-8" />
 		<title>Moon Lander</title>
 		<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
-		<!-- Welcome to ZIM at https://zimjs.com - Code Creativity!                              -->
+		<!-- Welcome to ZIM at https://zimjs.com - Code Creativity!                            -->
 		<!-- ZIM runs on the HTML Canvas powered by JavaScript and CreateJS https://createjs.com -->
 		<!-- Founded by Inventor Dan Zen - http://danzen.com - Canadian New Media Award Winner   -->
 		<!-- ZIM is free to use. You can donate to help improve ZIM at https://zimjs.com/donate  -->
@@ -49,7 +52,13 @@ Can I add gravity to an object on screen e.g. Circle?
 				'rover-body.png',
 				'rover-wheel-front.png',
 				'rover-wheel-back.png',
-				'hud-lander.png'
+				'hud-lander.png',
+				'logo.png',
+				'game-console.png',
+				'keyboard.png',
+				'beep.mp3',
+				'beep-deep.mp3',
+				'engine-sound.mp3'
 			]
 
 			const frame = new Frame(
@@ -71,18 +80,25 @@ Can I add gravity to an object on screen e.g. Circle?
 				// see https://zimjs.com/bits.html for 64 Interactive Media techniques
 
 				// put your code here (you can delete this sample code)
-				const MAXFUEL = 1000
+				const MAXFUEL = 1500
 				const ENGINE_TORQUE = 10
 				const GRAVITY = 1.62
 				const THRUST = GRAVITY * 0.4
 
 				let isGameOver = false
+				let isIntro = true
 				let isDocked = true
 				let isLanded = false
 				let velocityY = '0000' // You're seeing this crazy code because that's how I was able to provide 4 digit place on the canvas :D JS can take care of the type conversion
 				let velocityX = 0
 				let distance = '0000'
+				let hasRisen = false // true when lander has risen to 1/6 of Y axis, using this to avoid extra score addition on multiple touchdowns that happen because of restitution
+				let hasGoneAway = false // true when lander has gone away from the main spacecraft. This will be used to avoid multiple score addition when docking
 				let score = '0000'
+
+				// FOR KEYBOARD CONTROLS
+				let forceUp = -1
+				let forceDown = 1
 
 				// WORLD
 				const tile = new Tile({
@@ -92,6 +108,13 @@ Can I add gravity to an object on screen e.g. Circle?
 					spacingH: 500,
 					spacingV: 500
 				})
+
+				// ============= SOUNDS
+				let beep = asset('beep.mp3')
+				let engineSound = asset('engine-sound.mp3').play({
+					volume: 0,
+					loop: true
+				}) // VOLUME UP WHEN BURNING FUEL
 
 				const world = new Container(tile.width, tile.height).center()
 				tile.addTo(world)
@@ -113,6 +136,13 @@ Can I add gravity to an object on screen e.g. Circle?
 							font: 'Courier Prime',
 							fontOptions: 'bold',
 							color: 'rgba(255,255,255,0.8)'
+						},
+						Button: {
+							backgroundColor: 'rgba(255,255,255,0.9)',
+							rollBackgroundColor: '#F8D59C',
+							corner: 6,
+							shadowColor: 'rgba(255,255,255,0.9)',
+							shadowBlur: 50
 						}
 					}
 				}
@@ -184,6 +214,88 @@ Can I add gravity to an object on screen e.g. Circle?
 				new Rectangle(3, scoreBoard.height, '#888C93')
 					.centerReg(scoreBoard)
 					.pos(260, 0, RIGHT)
+
+				// == RESTART BUTTON
+				let btnLabel = new Label({
+					text: 'RESTART [Y]',
+					size: 18,
+					color: '#212121',
+					align: 'center'
+				})
+				let resetBtn = new Button({
+					width: 180,
+					height: 50,
+					label: btnLabel,
+					backgroundColor: 'rgba(255,255,255,0.9)',
+					rollBackgroundColor: '#F8D59C',
+					corner: 6,
+					shadowColor: 'rgba(255,255,255,0.9)',
+					shadowBlur: 50
+				})
+					.centerReg()
+					.pos(null, 100)
+					.tap(() => {
+						restartGame()
+					})
+				resetBtn.removeFrom()
+
+				// ======================== LOGO
+				let logo = new asset('logo.png')
+					.centerReg(scoreBoard)
+					.sca(0.8)
+					.pos(50, null)
+
+				// ================================== LABELS, ALERTS, MESSAGES
+				// ALERT
+				let alertLabel = new Label({
+					text: '',
+					size: 18,
+					color: 'rgba(255,255,255,1)',
+					backgroundColor: 'rgba(255,255,255,0.05)',
+					backgroundBorderColor: '#F8D59C',
+					paddingVertical: 20,
+					paddingHorizontal: 40,
+					align: 'center',
+					lineHeight: 30,
+					backgroundBorderWidth: 2,
+					corner: 4,
+					backgroundDashed: true
+				})
+					.centerReg()
+					.pos(null, 500)
+				alertLabel.removeFrom()
+
+				// MESSAGE
+				let msgLabel = new Label({
+					text: 'A',
+					size: 42,
+					color: '#212121',
+					backgroundColor: '#F8D59C',
+					backgroundBorderColor: '#F8D59C',
+					padding: 20,
+					align: 'center',
+					lineHeight: 30,
+					backgroundBorderWidth: 2,
+					corner: 4,
+					backgroundDashed: true
+				})
+					.centerReg()
+					.pos(null, 300)
+					.animate({
+						props: {
+							color: '#efefef'
+						},
+						time: 700,
+						rewind: true,
+						loop: true
+					})
+				new Label('Press')
+					.centerReg(msgLabel)
+					.pos(null, msgLabel.height / 2 - 65)
+				let msgActionLabel = new Label({ text: '', align: 'center' })
+					.centerReg(msgLabel)
+					.pos(null, msgLabel.height / 2 + 60)
+				// msgLabel.removeFrom()
 
 				// ======================= Moon
 				const moon = new Rectangle({
@@ -325,7 +437,8 @@ Can I add gravity to an object on screen e.g. Circle?
 					.addPhysics({
 						restitution: 1,
 						friction: 0.5,
-						density: 0.3
+						density: 0.3,
+						categoryBits: 2
 						// dynamic: false
 					})
 
@@ -337,7 +450,8 @@ Can I add gravity to an object on screen e.g. Circle?
 						restitution: 0.5,
 						friction: 8,
 						density: 1.5,
-						angular: 0.8
+						angular: 0.8,
+						categoryBits: 2
 						// dynamic: false
 					})
 				const backWheel = asset('rover-wheel-back.png')
@@ -349,7 +463,8 @@ Can I add gravity to an object on screen e.g. Circle?
 						restitution: 0.5,
 						friction: 8,
 						density: 1.5,
-						angular: 0.8
+						angular: 0.8,
+						categoryBits: 2
 						// dynamic: false
 					})
 
@@ -388,141 +503,306 @@ Can I add gravity to an object on screen e.g. Circle?
 				lander.contact(obj => {
 					hitCheck = true
 
-					console.log(obj)
-					if (obj.type == 'Rectangle' && velocityY < 15) {
-						moon.color = '#4CC67B'
+					// console.log(obj)
+					if (obj.type == 'Rectangle' && velocityY < 10) {
+						// moon.color = '#4CC67B'
+						hasRisen ? (score = parseInt(score) + 750) : null
+						hasRisen = false
 					} else if (
 						obj.type == 'Rectangle' &&
-						velocityY > 15 &&
+						velocityY > 10 &&
+						velocityY < 25
+					) {
+						// moon.color = '#4CC67B'
+						hasRisen ? (score = parseInt(score) + 450) : null
+						hasRisen = false
+					} else if (
+						obj.type == 'Rectangle' &&
+						velocityY > 25 &&
 						velocityY < 50
 					) {
-						moon.color = '#F7D33B'
+						// moon.color = '#F7D33B'
+						hasRisen ? (score = parseInt(score) + 250) : null
+						hasRisen = false
 					} else if (obj.type == 'Rectangle' && velocityY > 50) {
-						moon.color = '#C94646'
+						// moon.color = '#C94646'
+						score = parseInt(score) - 50
+						hasRisen = false
 					}
 				})
-				// TICKER
+				// ==========================
+				const LANDER_MOON_DISTANCE = (moon.y - lander.y).toFixed(0)
+				// ================================== TICKER
 				Ticker.add(() => {
-					// UPDATE SCOREBOARD
-					velocityLabel.text = (velocityY * 10).toFixed(0)
-					distance = (moon.y - lander.y).toFixed(0)
-					distanceLabel.text = distance
+					if (!isIntro) {
+						// +++++ UPDATE SCOREBOARD
+						velocityLabel.text = (velocityY * 10).toFixed(0)
+						distance = (moon.y - lander.y).toFixed(0)
+						fuelLabel.text = fuel
+						distanceLabel.text = distance
+						scoreLabel.text = score
 
-					// hit test between main spacecraft and lander
-					if (apolloDockingPoint.hitTestRect(landerDockingPoint)) {
-						// zogg('DOCKING SUCCESSFUL')
-						isDocked = true
-						lander.dynamic = false
-						moon.color = '#888C93' // once docked change moon color to default
-					}
-
-					// Hit test if lander is on the moon
-					if (lander.hitTestBounds(moon, 10)) {
-						isLanded = true
-					} else {
-						isLanded = false
-					}
-					// zogg('Is lander on the moon? ' + isLanded)
-
-					let velX = velocityX
-					if (velX < 0) velX *= -1 // convert negavite values to positive
-
-					// TO CHECK IF APOLLO AND LANDER ARE WITHIN 400 RANGE
-					let xDistance = 0 // distance between apollo and lander's x positions
-					if (lander.x > apollo.x) xDistance = lander.x - apollo.x
-					if (lander.x < apollo.x) xDistance = apollo.x - lander.x
-					let yDistance = 0 // distance between apollo and lander's y positions
-					if (lander.y > apollo.y) yDistance = lander.y - apollo.y
-					if (lander.y < apollo.y) yDistance = apollo.y - lander.y
-					if (xDistance < 400 && yDistance < 400) {
-						// zogg('Within range')
-						if (velX > 5) {
-							apolloDockingPoint.color = '#C94646' // RED
-							landerDockingPoint.color = '#C94646'
-						} else {
-							apolloDockingPoint.color = '#4CC67B' // GREEN
-							landerDockingPoint.color = '#4CC67B'
+						// zogg(hasGoneAway)
+						// hit test between main spacecraft and lander
+						if (
+							apolloDockingPoint.hitTestRect(landerDockingPoint)
+						) {
+							// zogg('DOCKING SUCCESSFUL')
+							isDocked = true
+							lander.dynamic = false
+							hasGoneAway
+								? (score = parseInt(score) + 1500)
+								: null
+							fuel = MAXFUEL // REFILL THE FUEL WHEN DOCKED TO THE MAIN SPACECRAFT
+							hasGoneAway = false
+							// moon.color = '#888C93' // once docked change moon color to default
 						}
-					} else {
-						apolloDockingPoint.color = '#F8D59C' // DEFAULT YELLOW
-						landerDockingPoint.color = '#F8D59C'
+
+						// Hit test if lander is on the moon
+						if (lander.hitTestBounds(moon, 10)) {
+							isLanded = true
+						} else {
+							isLanded = false
+						}
+						// zogg('Is lander on the moon? ' + isLanded)
+
+						let velX = velocityX
+						if (velX < 0) velX *= -1 // convert negavite values to positive
+
+						// CHECK IF LANDER HAS RISEN TO 1/6 OF Y AXIS
+						if (distance >= tile.height / 6) hasRisen = true
+
+						// zogy(hasRisen)
+
+						// TO CHECK IF APOLLO AND LANDER ARE WITHIN 400 RANGE
+						let xDistance = 0 // distance between apollo and lander's x positions
+						if (lander.x > apollo.x) xDistance = lander.x - apollo.x
+						if (lander.x < apollo.x) xDistance = apollo.x - lander.x
+						let yDistance = 0 // distance between apollo and lander's y positions
+						if (lander.y > apollo.y) yDistance = lander.y - apollo.y
+						if (lander.y < apollo.y) yDistance = apollo.y - lander.y
+						if (xDistance < 400 && yDistance < 400) {
+							// zogg('Within range')
+							if (velX > 5) {
+								apolloDockingPoint.color = '#C94646' // RED
+								landerDockingPoint.color = '#C94646'
+							} else {
+								apolloDockingPoint.color = '#4CC67B' // GREEN
+								landerDockingPoint.color = '#4CC67B'
+							}
+						} else {
+							hasGoneAway = true
+							apolloDockingPoint.color = '#F8D59C' // DEFAULT YELLOW
+							landerDockingPoint.color = '#F8D59C'
+						}
+						// =========
+
+						// +++++ ALERTS AND MESSAGES
+						// LOW FUEL AND GAME OVER IF FUEL <= 0
+						if (fuel <= 0) {
+							isGameOver = true
+							resetBtn.addTo()
+							alertLabel.text = 'GAME OVER! \nNothing to do here.'
+							alertLabel.addTo()
+						} else if (fuel < MAXFUEL * 0.3) {
+							alertLabel.text =
+								'L O W  F U E L! \nDock to the main spacecraft to refuel'
+							alertLabel.addTo()
+						} else {
+							alertLabel.removeFrom()
+						}
+
+						// PRESS A TO DESCENT AND X TO CONTROL THE ROVER
+						if (isDocked) {
+							msgLabel.addTo()
+							msgLabel.text = 'A'
+							msgActionLabel.text = 'to descent'
+						} else if (isLanded) {
+							msgLabel.addTo()
+							msgLabel.text = 'X'
+							msgActionLabel.text = 'to control rover'
+							!isLanderControls ? msgLabel.removeFrom() : null
+						} else {
+							msgLabel.removeFrom()
+						}
+
+						// KEYBOARD CONTROLS
+						if (forceUp <= 0) forceUp += 0.2
+						// zogb(forceUp)
+						// zogg('Is Docked? ' + isDocked)
 					}
-					// =========
-
-					// zogb(velX)
-					// zogg('Is Docked? ' + isDocked)
 				})
-
-				// =============== CONTROLS
+				// =============================== GAMING CONSOLE CONTROLS
+				// GAME CONSOLE
 				const pad = new GamePad()
 				let isLanderControls = true
 				let fx = 0
 				let fy = 0
 				pad.on('data', function(e) {
-					// horizontal is 0 and vertical is 1 on left stick
-					// horizontal is 2 and vertical is 3 on right stick
-					// PRESS A TO RELEASE THE LANDER
-					// zogb(e.buttons)
-					if (e.buttons[0] == true) {
-						isDocked = false
-						lander.mov(10, null)
-						lander.dynamic = true
-						lander.torque(60)
-					}
+					if (!isIntro) {
+						// horizontal is 0 and vertical is 1 on left stick
+						// horizontal is 2 and vertical is 3 on right stick
 
-					// PRESS Y FOR IMPULSE FORCE
-					// if (e.buttons[3] == true) lander.impulse(0, -40)
-					if (e.buttons[3] == true) zogr(lander)
+						// PRESS A TO RELEASE THE LANDER
+						if (e.buttons[0] == true) descent()
 
-					if (isLanded) {
-						// PRESS X TO DEPLOY ROVER ON THE MOON - only if lander is on the moon surface
-						if (e.buttons[2] == true) {
-							isLanderControls = !isLanderControls
-							if (isLanderControls) {
-								followTo(lander)
-							} else {
-								followTo(frontWheel)
-							}
+						// zogg(e.buttons)
+						// PRESS Y FOR IMPULSE FORCE
+						// if (e.buttons[3] == true) lander.impulse(0, -40)
+						// if (e.buttons[3] == true) zogr(lander)
+
+						if (isLanded) {
+							// PRESS X TO DEPLOY ROVER ON THE MOON - only if lander is on the moon surface
+							if (e.buttons[2] == true) toggleControls()
 						}
+
+						if (isLanderControls) {
+							// Calculate Velocity
+							calculateVelocity()
+							if (fuel > 0) {
+								// LANDER CONTROL
+								if (e.axes[1] < 0) {
+									fy = e.axes[1] * 100 * THRUST // UPWARD FORCE
+								} else {
+									fy = e.axes[1] * 10 // DOWNWARD FORCE
+								}
+								lander.force(
+									e.axes[0] * 25 * THRUST,
+									fy,
+									null,
+									null
+								)
+								// lander.force(null, 5, 200, 200)
+								lander.torque(e.axes[2] * 40)
+
+								// PARTICLE ANIMATION TO SIMULATE ENGINE ON AND OFF STATES
+								// MAIN ENGINE
+								let yOffset = (e.axes[0] - e.axes[1]).toFixed(3)
+								if (yOffset > 0.1) {
+									particles.pauseEmitter(false)
+
+									// BURING FUEL UNTILL IT EXHAUSTS
+									fuel > 0 ? (fuel -= 0.5) : (fuel = 0)
+
+									// PLAY ENGINE SOUND
+									// engineSound.play()
+									engineSound.volume = 0.8
+								} else {
+									particles.pauseEmitter(true)
+									engineSound.volume = 0
+								}
+								// AUXILIARY ENGINE
+								if (e.axes[2] < 0.001) {
+									particlesRight.pauseEmitter(false)
+								} else {
+									particlesRight.pauseEmitter(true)
+								}
+								if (e.axes[2] > 0.1) {
+									particlesLeft.pauseEmitter(false)
+								} else {
+									particlesLeft.pauseEmitter(true)
+								}
+							} else {
+								// fuel exhausted turn off the engine animations
+								particles.pauseEmitter(true)
+								particlesRight.pauseEmitter(true)
+								particlesLeft.pauseEmitter(true)
+								// MUTE THE ENGINE SOUND
+								engineSound.volume = 0
+							}
+						} else {
+							// ====== ROVER CONTROLS
+							frontWheel.torque(e.axes[2] * ENGINE_TORQUE)
+							backWheel.torque(e.axes[2] * ENGINE_TORQUE)
+						}
+
+						// zogg(e.axes[1])
 					} else {
+						// IF INTRO PAGE PRESS X TO START THE GAME
+						if (e.buttons[2] == true) startGame()
 					}
 
+					// PRESS Y TO RESTART THE GAME - ONLY IF GAME IS OVER
+					if (isGameOver) {
+						if (e.buttons[3] == true) restartGame()
+					}
+				})
+
+				// =============================== KEYBOARD CONTROLS
+				frame.on('keydown', function(e) {
+					// zogg(e.keyCode)
+					// PRESS A TO DESCENT
+					if (e.keyCode == 65 && isDocked) descent()
+
+					// PRESS X TO TOGGLE CONTROLS
+					if (isLanded) {
+						if (e.keyCode == 88) toggleControls()
+					}
+
+					// LANDER AND ROVER CONTROLS WITH KEYBOARD
 					if (isLanderControls) {
 						// Calculate Velocity
 						calculateVelocity()
 						if (fuel > 0) {
 							// LANDER CONTROL
-							if (e.axes[1] < 0) {
-								fy = e.axes[1] * 100 * THRUST
-							} else {
-								fy = e.axes[1] * 10
+							// UP ARROW
+							if (e.keyCode == 38) {
+								forceUp -= 5
+								lander.force(null, forceUp * THRUST, null, null)
+								particles.pauseEmitter(false)
 							}
-							lander.force(e.axes[0] * 10, fy, null, null)
+							// LEFT ARROW
+							if (e.keyCode == 37) {
+								//
+							}
+							// RIGHT ARROW
+							if (e.keyCode == 39) {
+								//
+							}
+							// LEFT TORQUE - A
+							if (e.keyCode == 65) {
+								lander.torque(-1 * 60)
+							}
+							// RIGHT TORQUE - D
+							if (e.keyCode == 68) {
+								lander.torque(1 * 60)
+							}
+
+							// if (e.axes[1] < 0) {
+							// 	fy = e.axes[1] * 100 * THRUST // UPWARD FORCE
+							// } else {
+							// 	fy = e.axes[1] * 10 // DOWNWARD FORCE
+							// }
+							// lander.force(
+							// 	e.axes[0] * 25 * THRUST,
+							// 	fy,
+							// 	null,
+							// 	null
+							// )
 							// lander.force(null, 5, 200, 200)
-							lander.torque(e.axes[2] * 40)
+							// lander.torque(e.axes[2] * 40)
 
 							// PARTICLE ANIMATION TO SIMULATE ENGINE ON AND OFF STATES
 							// MAIN ENGINE
-							let yOffset = (e.axes[0] - e.axes[1]).toFixed(3)
-							if (yOffset > 0.1) {
-								particles.pauseEmitter(false)
-								//
-								fuel > 0 ? (fuel -= 0.5) : (fuel = 0)
-								fuelLabel.text = fuel
-							} else {
-								particles.pauseEmitter(true)
-							}
-							// AUXILIARY ENGINE
-							if (e.axes[2] < 0.001) {
-								particlesRight.pauseEmitter(false)
-							} else {
-								particlesRight.pauseEmitter(true)
-							}
-							if (e.axes[2] > 0.1) {
-								particlesLeft.pauseEmitter(false)
-							} else {
-								particlesLeft.pauseEmitter(true)
-							}
+							// let yOffset = (e.axes[0] - e.axes[1]).toFixed(3)
+							// if (yOffset > 0.1) {
+							// 	particles.pauseEmitter(false)
+							// 	//
+							// 	fuel > 0 ? (fuel -= 0.5) : (fuel = 0)
+							// } else {
+							// 	particles.pauseEmitter(true)
+							// }
+							// // AUXILIARY ENGINE
+							// if (e.axes[2] < 0.001) {
+							// 	particlesRight.pauseEmitter(false)
+							// } else {
+							// 	particlesRight.pauseEmitter(true)
+							// }
+							// if (e.axes[2] > 0.1) {
+							// 	particlesLeft.pauseEmitter(false)
+							// } else {
+							// 	particlesLeft.pauseEmitter(true)
+							// }
 						} else {
 							// fuel exhausted turn off the engine animations
 							particles.pauseEmitter(true)
@@ -531,11 +811,104 @@ Can I add gravity to an object on screen e.g. Circle?
 						}
 					} else {
 						// ====== ROVER CONTROLS
-						frontWheel.torque(e.axes[2] * ENGINE_TORQUE)
-						backWheel.torque(e.axes[2] * ENGINE_TORQUE)
+						// LEFT ARROW
+						if (e.keyCode == 37) {
+							frontWheel.torque(-5 * ENGINE_TORQUE)
+							backWheel.torque(-5 * ENGINE_TORQUE)
+						}
+						// RIGHT ARROW
+						if (e.keyCode == 39) {
+							frontWheel.torque(5 * ENGINE_TORQUE)
+							backWheel.torque(5 * ENGINE_TORQUE)
+						}
 					}
+				})
 
-					// zogg(e.axes[1])
+				// ============================ INTRO AND LOGO
+
+				let introContainer = new Container(stageW, stageH).centerReg()
+				// DARK TRANSPARENT BG
+				new Rectangle(stageH, stageH, 'rgba(37,39,43,0.9)').centerReg(
+					introContainer
+				)
+				let intro = new Rectangle({
+					width: stageW * 0.9,
+					height: stageH * 0.7,
+					color: '#292B2F',
+					borderColor: '#F8D59C',
+					borderWidth: 15
+				}).centerReg(introContainer)
+
+				logo.clone()
+					.sca(1)
+					.centerReg(intro)
+					.pos(null, 80)
+				// SELECT CONTROL LABEL
+				new Label({
+					text: 'Connect your game controller',
+					size: 32
+				})
+					.centerReg(intro)
+					.pos(null, 220)
+				// VERTICAL DIVIDER
+				new Rectangle(1, intro.height / 3, '#F8D59C')
+					.centerReg(intro)
+					.pos(null, 40, null, CENTER)
+
+				//
+				let gameConsoleLabel = new Label({
+					text: 'Game Console\n(Recommended)',
+					size: 22,
+					align: 'center',
+					lineHeight: 30,
+					paddingHorizontal: 40,
+					paddingVertical: 60,
+					shiftVertical: 120
+				})
+					.centerReg(intro)
+					.pos(intro.width / 2 / 2, null)
+				new asset('game-console.png').centerReg(gameConsoleLabel)
+				//
+				let keyboardLabel = new Label({
+					text: 'Keyboard\n(WIP)',
+					size: 22,
+					align: 'center',
+					lineHeight: 30,
+					paddingHorizontal: 40,
+					paddingVertical: 60,
+					shiftVertical: 120
+				})
+					.centerReg(intro)
+					.pos(intro.width / 2 / 2, null, RIGHT)
+				new asset('keyboard.png').centerReg(keyboardLabel)
+				let playLabel = new Label({
+					text: 'PLAY | [X]',
+					color: '#212121'
+				})
+
+				new Button({ label: playLabel })
+					.centerReg(introContainer)
+					.top(1)
+					.pos(null, intro.height - 10, null, TOP)
+					.tap(e => {
+						startGame()
+					})
+
+				// ============================ SOUND EFFECTS
+				let intervalCount = 4000
+				function handleInterval() {
+					let newInterval = intervalCount
+					// SPEED-UP BEEP INTERVAL WHEN LANDER IS CLOSER TO MOON SURFACE
+					if (distance < LANDER_MOON_DISTANCE / 2) {
+						newInterval = 400
+					}
+					return newInterval
+				}
+
+				interval(handleInterval, () => {
+					if (!isLanded && !isIntro) {
+						beep.play()
+					}
 				})
 
 				// ============================ FUNCTIONS
@@ -555,6 +928,37 @@ Can I add gravity to an object on screen e.g. Circle?
 					velocityX = (vX * 1000).toFixed(3)
 					return
 				}
+
+				// DESCENT FN
+				function descent() {
+					isDocked = false
+					lander.mov(10, null) // to nudge the spacecraft
+					lander.dynamic = true // to apply physics on lander
+					lander.torque(60)
+				}
+				// TOGGLE SPACECRAFT AND ROVER CONTROLS FN
+				function toggleControls() {
+					isLanderControls = !isLanderControls
+					if (isLanderControls) {
+						followTo(lander)
+					} else {
+						followTo(frontWheel)
+					}
+				}
+
+				// START THE GAME
+				function startGame() {
+					isIntro = false
+					introContainer.removeFrom()
+					beep.play()
+				}
+
+				// RESTART THE GAME
+				function restartGame() {
+					location.reload()
+					return false
+				}
+				// ============ END OF FUNCTIONS
 
 				// FOLLOW LANDER
 				followTo(lander)
