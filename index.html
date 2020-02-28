@@ -116,6 +116,9 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 					let forceUp = -1
 					let forceDown = 1
 
+					// TO MAKE INTRO SCREEN ADAPTIVE TO DIFFERENT SCREEN SIZES
+					let screenWidth = window.innerWidth
+
 					// WORLD
 					const tile = new Tile({
 						obj: new Circle({ min: 3, max: 6 }, ['#C4CCD6']),
@@ -254,7 +257,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 						shadowBlur: 50
 					})
 						.centerReg()
-						.pos(null, 100)
+						.pos(null, 60)
 						.tap(() => {
 							restartGame()
 						})
@@ -301,7 +304,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 						backgroundDashed: true
 					})
 						.centerReg()
-						.pos(null, 300)
+						.pos(null, 150)
 						.animate({
 							props: {
 								color: '#efefef'
@@ -887,13 +890,14 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 					).centerReg()
 					// DARK TRANSPARENT BG
 					new Rectangle(
-						stageH,
+						stageW,
 						stageH,
 						'rgba(37,39,43,0.9)'
 					).centerReg(introContainer)
 					let intro = new Rectangle({
-						width: stageW * 0.9,
-						height: stageH * 0.7,
+						width: screenWidth < 1400 ? stageW * 0.9 : 1200,
+						height:
+							screenWidth < 1400 ? stageH * 0.95 : stageH * 0.6,
 						color: '#292B2F',
 						borderColor: '#F8D59C',
 						borderWidth: 15
@@ -949,7 +953,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 					new Button({ label: playLabel })
 						.centerReg(introContainer)
 						.top(1)
-						.pos(null, intro.height - 10, null, TOP)
+						.pos(null, intro.height / 3, null, CENTER)
 						.tap(e => {
 							startGame()
 						})
