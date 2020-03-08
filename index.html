@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 
-<!--
-Here are some questions and their answers that I stumbled upon while developing this game. I hope this may help others if they face similar issues.
+<!-- =======================
 
-Q: Can I add gravity to an object on screen e.g. Circle?
-A: You can but you need to consider vectors (atleast x and y) in your calculations while applying force.
+Author: Ankit Raj Gupta
+Publish Date: March 8, 2020
+Last Updated: March 8, 2020
+Website: https://ankit.life
+Game: http://lunarlander.ankit.life
 
- -->
+ ======================= -->
 
 <html>
 	<head>
@@ -28,16 +30,14 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 		<meta charset="utf-8" />
 		<title>Lunar Lander</title>
 		<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
-		<!-- Welcome to ZIM at https://zimjs.com - Code Creativity!                            -->
-		<!-- ZIM runs on the HTML Canvas powered by JavaScript and CreateJS https://createjs.com -->
-		<!-- Founded by Inventor Dan Zen - http://danzen.com - Canadian New Media Award Winner   -->
-		<!-- ZIM is free to use. You can donate to help improve ZIM at https://zimjs.com/donate  -->
 
+		<!-- Google Font: Courier Prime -->
 		<link
 			href="https://fonts.googleapis.com/css?family=Courier+Prime&display=swap"
 			rel="stylesheet"
 		/>
 
+		<!-- Create Js and Zim Js -->
 		<script src="https://zimjs.org/cdn/1.2.4/createjs.js"></script>
 		<script src="https://zimjs.org/cdn/10.8.0/zim.js"></script>
 		<!-- use zimjs.com/distill for minified individual functions! -->
@@ -55,8 +55,8 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 			// "tagID"	add canvas to HTML tag of ID - set to dimensions if provided - no scaling
 
 			const scaling = 'full' // this will resize to fit inside the screen dimensions
-			const width = 1000
-			const height = 1000
+			const width = null
+			const height = null
 			const color = '#25272B' // ZIM colors like green, blue, pink, faint, clear, etc.
 			const outerColor = '#25272B' // any HTML colors like "violet", "#333", etc. are fine to use
 
@@ -99,7 +99,8 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 					const MAXFUEL = 1500
 					const ENGINE_TORQUE = 10
 					const GRAVITY = 1.62
-					const THRUST = GRAVITY * 0.4
+					const THRUST = GRAVITY * 0.25 // Just to keep engine thrust in proportion to the gravity
+					const SAFE_DISTANCE = 400 // safe distance between main spacecraft and lander
 
 					let isGameOver = false
 					let isIntro = true
@@ -324,7 +325,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 						.pos(null, msgLabel.height / 2 + 60)
 					// msgLabel.removeFrom()
 
-					// ======================= Moon
+					// ======================= THE MOON
 					const moon = new Rectangle({
 						width: tile.width,
 						height: stageH / 2,
@@ -386,20 +387,6 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 							})
 					}
 
-					// const moon = new Squiggle({
-					// 	points: 12,
-					// 	// points:
-					// 	// 	'M.5,228.5l30-25s32,9,45,12,96-31,96-31l134,44,50-64,94,51s106,5,119,0,231,13,231,13l105-32h292l154,95s68-142,78-142,412,93,412,93l115,27,83-95,310,83,139-81,313,10,136,44,135-10h84',
-					// 	thickness: 10,
-					// 	controlType: 'none',
-					// 	lockControlType: true,
-					// 	lockControls: true
-					// })
-					// 	.centerReg(world)
-					// 	.pos(0, -100, false, BOTTOM)
-					// 	.outline()
-					// 	.addPhysics({ categoryBits: 2 })
-					// new asset('moon-surface.svg').centerReg(moon)
 					// =========== APOLLO COMMAND MODULE
 					const apollo = new Container(235, 84)
 						.centerReg(world)
@@ -432,7 +419,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 
 					// physics.join(lander, apollo)
 
-					// =============== PARTICLES
+					// =============== PARTICLES - ENGINE BURN EFFECT
 					// MAIN ENGINE PARTICLES
 					var particles = new Emitter({
 						obj: [new Circle(12, null, 'white')],
@@ -472,8 +459,8 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 						.centerReg(lander)
 						.pos(-40, -50, RIGHT, BOTTOM)
 					// lander.outline()
-					// ====================== ROVER PARTS
 
+					// ====================== ROVER PARTS
 					const roverBody = asset('rover-body.png')
 						.centerReg(world)
 						.mov(-25, -46)
@@ -512,7 +499,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 							// dynamic: false
 						})
 
-					// ASSEMBLE ROVER
+					// ASSEMBLE ROVER USING PHYSICS.JOIN
 					physics.join(
 						frontWheel,
 						roverBody,
@@ -531,16 +518,6 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 						null,
 						'revolute'
 					)
-					// ATTACH ROVER TO LANDER AND RELEASE ONCE LANDER IS ON THE MOON
-					// physics.join(
-					// 	frontWheel,
-					// 	lander,
-					// 	null,
-					// 	null,
-					// 	null,
-					// 	null,
-					// 	'revolute'
-					// )
 
 					// ============== HIT TEST
 					let hitCheck = false
@@ -575,6 +552,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 						}
 					})
 					// ==========================
+
 					const LANDER_MOON_DISTANCE = (moon.y - lander.y).toFixed(0)
 					// ================================== TICKER
 					Ticker.add(() => {
@@ -601,11 +579,10 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 									: null
 								fuel = MAXFUEL // REFILL THE FUEL WHEN DOCKED TO THE MAIN SPACECRAFT
 								hasGoneAway = false
-								// moon.color = '#888C93' // once docked change moon color to default
 							}
 
 							// Hit test if lander is on the moon
-							if (lander.hitTestBounds(moon, 10)) {
+							if (lander.hitTestBounds(moon, 5)) {
 								isLanded = true
 							} else {
 								isLanded = false
@@ -620,7 +597,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 
 							// zogy(hasRisen)
 
-							// TO CHECK IF APOLLO AND LANDER ARE WITHIN 400 RANGE
+							// TO CHECK SAFE_DISTANCE BETWEEN APOLLO AND LANDER
 							let xDistance = 0 // distance between apollo and lander's x positions
 							if (lander.x > apollo.x)
 								xDistance = lander.x - apollo.x
@@ -631,13 +608,16 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 								yDistance = lander.y - apollo.y
 							if (lander.y < apollo.y)
 								yDistance = apollo.y - lander.y
-							if (xDistance < 400 && yDistance < 400) {
+							if (
+								xDistance < SAFE_DISTANCE &&
+								yDistance < SAFE_DISTANCE
+							) {
 								// zogg('Within range')
 								if (velX > 5) {
-									apolloDockingPoint.color = '#C94646' // RED
+									apolloDockingPoint.color = '#C94646' // RED - TOO FAST
 									landerDockingPoint.color = '#C94646'
 								} else {
-									apolloDockingPoint.color = '#4CC67B' // GREEN
+									apolloDockingPoint.color = '#4CC67B' // GREEN - OPTMIMAL SPEED
 									landerDockingPoint.color = '#4CC67B'
 								}
 							} else {
@@ -646,6 +626,9 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 								landerDockingPoint.color = '#F8D59C'
 							}
 							// =========
+
+							// CALCULATE VELOCITY
+							calculateVelocity()
 
 							// +++++ ALERTS AND MESSAGES
 							// LOW FUEL AND GAME OVER IF FUEL <= 0
@@ -678,7 +661,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 							}
 
 							// KEYBOARD CONTROLS
-							if (forceUp <= 0) forceUp += 0.2
+							// if (forceUp <= 0) forceUp += 0.2
 							// zogb(forceUp)
 							// zogg('Is Docked? ' + isDocked)
 						}
@@ -709,7 +692,7 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 
 							if (isLanderControls) {
 								// Calculate Velocity
-								calculateVelocity()
+								// calculateVelocity()
 								if (fuel > 0) {
 									// LANDER CONTROL
 									if (e.axes[1] < 0) {
@@ -781,109 +764,139 @@ A: You can but you need to consider vectors (atleast x and y) in your calculatio
 						}
 					})
 
-					// =============================== KEYBOARD CONTROLS
-					frame.on('keydown', function(e) {
-						// zogg(e.keyCode)
-						// PRESS A TO DESCENT
-						if (e.keyCode == 65 && isDocked) descent()
+					// =============================== KEYBOARD CONTROLS - WORK IN PROGRESS
+					// frame.on('keydown', function(e) {
+					// 	// zogg(e.keyCode)
+					// 	// PRESS A TO DESCENT
+					// 	if (e.keyCode == 65 && isDocked) descent()
 
-						// PRESS X TO TOGGLE CONTROLS
-						if (isLanded) {
-							if (e.keyCode == 88) toggleControls()
-						}
+					// 	// PRESS X TO TOGGLE CONTROLS
+					// 	if (isLanded) {
+					// 		if (e.keyCode == 88) toggleControls()
+					// 	}
 
-						// LANDER AND ROVER CONTROLS WITH KEYBOARD
-						if (isLanderControls) {
-							// Calculate Velocity
-							calculateVelocity()
-							if (fuel > 0) {
-								// LANDER CONTROL
-								// UP ARROW
-								if (e.keyCode == 38) {
-									forceUp -= 5
-									lander.force(
-										null,
-										forceUp * THRUST,
-										null,
-										null
-									)
-									particles.pauseEmitter(false)
-								}
-								// LEFT ARROW
-								if (e.keyCode == 37) {
-									//
-								}
-								// RIGHT ARROW
-								if (e.keyCode == 39) {
-									//
-								}
-								// LEFT TORQUE - A
-								if (e.keyCode == 65) {
-									lander.torque(-1 * 60)
-								}
-								// RIGHT TORQUE - D
-								if (e.keyCode == 68) {
-									lander.torque(1 * 60)
-								}
+					// 	// LANDER AND ROVER CONTROLS WITH KEYBOARD
+					// 	if (isLanderControls) {
+					// 		if (fuel > 0) {
+					// 			// LANDER CONTROL
+					// 			// UP ARROW
+					// 			if (e.keyCode == 38) {
+					// 				forceUp -= 5
+					// 				lander.force(
+					// 					null,
+					// 					forceUp * THRUST,
+					// 					null,
+					// 					null
+					// 				)
+					// 				particles.pauseEmitter(false)
+					// 			}
+					// 			// LEFT ARROW
+					// 			if (e.keyCode == 37) {
+					// 				//
+					// 				lander.force(-100, null, null, null)
+					// 			}
+					// 			// RIGHT ARROW
+					// 			if (e.keyCode == 39) {
+					// 				//
+					// 			}
+					// 			// LEFT TORQUE - A
+					// 			if (e.keyCode == 65) {
+					// 				lander.torque(-1 * 60)
+					// 			}
+					// 			// RIGHT TORQUE - D
+					// 			if (e.keyCode == 68) {
+					// 				lander.torque(1 * 60)
+					// 			}
 
-								// if (e.axes[1] < 0) {
-								// 	fy = e.axes[1] * 100 * THRUST // UPWARD FORCE
-								// } else {
-								// 	fy = e.axes[1] * 10 // DOWNWARD FORCE
-								// }
-								// lander.force(
-								// 	e.axes[0] * 25 * THRUST,
-								// 	fy,
-								// 	null,
-								// 	null
-								// )
-								// lander.force(null, 5, 200, 200)
-								// lander.torque(e.axes[2] * 40)
+					// 			// if (e.axes[1] < 0) {
+					// 			// 	fy = e.axes[1] * 100 * THRUST // UPWARD FORCE
+					// 			// } else {
+					// 			// 	fy = e.axes[1] * 10 // DOWNWARD FORCE
+					// 			// }
+					// 			// lander.force(
+					// 			// 	e.axes[0] * 25 * THRUST,
+					// 			// 	fy,
+					// 			// 	null,
+					// 			// 	null
+					// 			// )
+					// 			// lander.force(null, 5, 200, 200)
+					// 			// lander.torque(e.axes[2] * 40)
 
-								// PARTICLE ANIMATION TO SIMULATE ENGINE ON AND OFF STATES
-								// MAIN ENGINE
-								// let yOffset = (e.axes[0] - e.axes[1]).toFixed(3)
-								// if (yOffset > 0.1) {
-								// 	particles.pauseEmitter(false)
-								// 	//
-								// 	fuel > 0 ? (fuel -= 0.5) : (fuel = 0)
-								// } else {
-								// 	particles.pauseEmitter(true)
-								// }
-								// // AUXILIARY ENGINE
-								// if (e.axes[2] < 0.001) {
-								// 	particlesRight.pauseEmitter(false)
-								// } else {
-								// 	particlesRight.pauseEmitter(true)
-								// }
-								// if (e.axes[2] > 0.1) {
-								// 	particlesLeft.pauseEmitter(false)
-								// } else {
-								// 	particlesLeft.pauseEmitter(true)
-								// }
-							} else {
-								// fuel exhausted turn off the engine animations
-								particles.pauseEmitter(true)
-								particlesRight.pauseEmitter(true)
-								particlesLeft.pauseEmitter(true)
-							}
-						} else {
-							// ====== ROVER CONTROLS
-							// LEFT ARROW
-							if (e.keyCode == 37) {
-								frontWheel.torque(-5 * ENGINE_TORQUE)
-								backWheel.torque(-5 * ENGINE_TORQUE)
-							}
-							// RIGHT ARROW
-							if (e.keyCode == 39) {
-								frontWheel.torque(5 * ENGINE_TORQUE)
-								backWheel.torque(5 * ENGINE_TORQUE)
-							}
-						}
-					})
+					// 			// PARTICLE ANIMATION TO SIMULATE ENGINE ON AND OFF STATES
+					// 			// MAIN ENGINE
+					// 			// let yOffset = (e.axes[0] - e.axes[1]).toFixed(3)
+					// 			// if (yOffset > 0.1) {
+					// 			// 	particles.pauseEmitter(false)
+					// 			// 	//
+					// 			// 	fuel > 0 ? (fuel -= 0.5) : (fuel = 0)
+					// 			// } else {
+					// 			// 	particles.pauseEmitter(true)
+					// 			// }
+					// 			// // AUXILIARY ENGINE
+					// 			// if (e.axes[2] < 0.001) {
+					// 			// 	particlesRight.pauseEmitter(false)
+					// 			// } else {
+					// 			// 	particlesRight.pauseEmitter(true)
+					// 			// }
+					// 			// if (e.axes[2] > 0.1) {
+					// 			// 	particlesLeft.pauseEmitter(false)
+					// 			// } else {
+					// 			// 	particlesLeft.pauseEmitter(true)
+					// 			// }
+					// 		} else {
+					// 			// fuel exhausted turn off the engine animations
+					// 			particles.pauseEmitter(true)
+					// 			particlesRight.pauseEmitter(true)
+					// 			particlesLeft.pauseEmitter(true)
+					// 		}
+					// 	} else {
+					// 		// ====== ROVER CONTROLS
+					// 		// LEFT ARROW
+					// 		if (e.keyCode == 37) {
+					// 			frontWheel.torque(-5 * ENGINE_TORQUE)
+					// 			backWheel.torque(-5 * ENGINE_TORQUE)
+					// 		}
+					// 		// RIGHT ARROW
+					// 		if (e.keyCode == 39) {
+					// 			frontWheel.torque(5 * ENGINE_TORQUE)
+					// 			backWheel.torque(5 * ENGINE_TORQUE)
+					// 		}
+					// 	}
+					// })
+
+					// // Keyup
+					// frame.on('keyup', function(e) {
+					// 	// LANDER AND ROVER CONTROLS WITH KEYBOARD
+					// 	if (isLanderControls) {
+					// 		if (fuel > 0) {
+					// 			// LANDER CONTROL
+					// 			// UP ARROW
+					// 			if (e.keyCode == 38) {
+					// 				forceUp = -1
+					// 				lander.force(null, forceUp, null, null)
+					// 				particles.pauseEmitter(true)
+					// 			}
+					// 			// LEFT ARROW
+					// 			if (e.keyCode == 37) {
+					// 				//
+					// 			}
+					// 			// RIGHT ARROW
+					// 			if (e.keyCode == 39) {
+					// 				//
+					// 			}
+					// 			// LEFT TORQUE - A
+					// 			if (e.keyCode == 65) {
+					// 				lander.torque(-1 * 60)
+					// 			}
+					// 			// RIGHT TORQUE - D
+					// 			if (e.keyCode == 68) {
+					// 				lander.torque(1 * 60)
+					// 			}
+					// 		}
+					// 	}
+					// })
 
 					// ============================ INTRO AND LOGO
-
 					let introContainer = new Container(
 						stageW,
 						stageH
