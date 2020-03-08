@@ -963,6 +963,16 @@ Game: http://lunarlander.ankit.life
 						color: '#212121'
 					})
 
+					// ATTRIBUTION
+					new Label({
+						text: 'Icons made by Freepik from www.flaticon.com',
+						size: 12
+					})
+						.centerReg(introContainer)
+						.pos(null, 0, null, BOTTOM)
+						.alp(0.5)
+
+					// BUTTON
 					new Button({ label: playLabel })
 						.centerReg(introContainer)
 						.top(1)
@@ -1052,6 +1062,23 @@ Game: http://lunarlander.ankit.life
 	</head>
 
 	<body>
+		<style>
+			.repo {
+				position: fixed;
+				bottom: 10px;
+				right: 20px;
+				z-index: 2;
+				color: rgba(255, 255, 255, 0.4);
+				text-decoration: none;
+				font-size: 13px;
+			}
+		</style>
+		<a
+			class="repo"
+			target="_blank"
+			href="https://github.com/ankitraj77/moon-lander"
+			>View on GitHub</a
+		>
 		<!-- canvas with id="myCanvas" is made by zim Frame -->
 	</body>
 </html>
